@@ -147,7 +147,7 @@ def print_to_file(solutions, variables, ideal, varphi, filename="output"):
 		varphi = reduce(varphi, R, ideal)
 		print(varphi)
 		f.write("\\hline"+" \n")
-		f.write(str(sol.variables()).replace("(","").replace(")","")+" & "+str(varphi)+" \\\\"+"\n")
+		f.write(("$"+str(sol.variables()).replace("(","").replace(")","").replace(",", "$, $")+"$").replace(", $$","")+" & "+"$"+str(varphi).replace("*", " \cdot ").replace("_", "\_")+"$"+" \\\\"+"\n")
 	f.write("\\caption{"+str(len(solutions))+" different representations}"+"\n")
 	f.write("\\end{longtable}"+"\n")
 	f.close()
