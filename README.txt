@@ -1,3 +1,3 @@
 To run the script use:
 
-sage -python example*.py 
+python3 example*.py 
