@@ -1,8 +1,7 @@
-from __future__ import print_function
 from sage.all import *
 from timeit import default_timer as timer
 from compute_minimal_normal_forms import compute_min_repr, print_to_file
-from sets import Set
+
 
 if __name__ == "__main__":
     variables = ['ATP', 'BAX', 'BCL2', 'CASP3', 'CASP8', 'Cytc', 'DISC_FAS', 'DISCTNF', 'FADD', 'FASL', 'IKK', 'MOMP', 'MPT', 'NFKB1', 'RIP1', 'RIP1K', 'RIP1ub', 'ROS', 'SMAC', 'TNF', 'TNFR', 'XIAP', 'apoptosome', 'cFLIP', 'cIAP']

@@ -1,8 +1,12 @@
-from __future__ import print_function
+
+import sys
 from sage.all import *
 from timeit import default_timer as timer
 #from candidate_sets import excl_forward
 from candidate_sets import exclude_backward, exclude_forwardeq, exclude_forward, initialize_candidate_sets, pick_a_set_of_P
+
+if sys.version_info[0] < 3:
+    raise Exception("must be using Python 3")
 
         
 def get_order(A):

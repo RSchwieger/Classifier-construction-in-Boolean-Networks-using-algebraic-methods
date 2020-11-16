@@ -1,4 +1,3 @@
-from __future__ import print_function
 from brial.frontend import *
 
 # ToDo: Variables need to be always from the same ring.
