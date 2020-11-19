@@ -6,3 +6,4 @@ RUN apt-get update
 RUN apt-get install -y sagemath
 
 WORKDIR /media
+CMD ./dockerrun
