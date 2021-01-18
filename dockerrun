@@ -1,0 +1,2 @@
+
+python3 classy.py --bnet n7s3.bnet --classifier "v4 & !v6"

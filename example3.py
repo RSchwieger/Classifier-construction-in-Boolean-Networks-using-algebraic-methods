@@ -1,6 +1,6 @@
-from __future__ import print_function
+
+
 from sage.all import *
-from timeit import default_timer as timer
 from compute_minimal_normal_forms import compute_min_repr
 
 

@@ -1,5 +1,6 @@
+
+
 from sage.all import *
-from timeit import default_timer as timer
 from compute_minimal_normal_forms import compute_min_repr, print_to_file
 
 
