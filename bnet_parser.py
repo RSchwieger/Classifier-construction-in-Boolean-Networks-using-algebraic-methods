@@ -28,6 +28,10 @@ def parse_bnet_str(fstr: str) -> dict:
     formulas = {}
     for line in lines:
         name, eq = line.split(",")
+
+        if name == "targets":
+            continue
+
         formulas[name.strip()] = eq.strip().replace("!", "~")
 
     polynomials = convert_formulas_to_polynomials(formulas=formulas)

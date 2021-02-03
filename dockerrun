@@ -1,2 +1,5 @@
+#!/bin/bash
 
-python3 classy.py --bnet n7s3.bnet --classifier "v4 & !v6"
+for filename in benchmark_path_graph/*.json; do
+    python3 groebner.py --timeout 120 --bench "$filename"
+done
