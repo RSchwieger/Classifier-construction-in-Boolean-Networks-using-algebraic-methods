@@ -1,6 +1,8 @@
 
 
 import sys
+import logging
+
 from sage.all import TermOrder
 from sage.all import BooleanPolynomialRing
 from sage.all import Ideal
@@ -9,6 +11,8 @@ from candidate_sets import exclude_backward, exclude_forwardeq, exclude_forward,
 
 if sys.version_info[0] < 3:
     raise Exception("must be using Python 3")
+
+log = logging.getLogger(__name__)
 
         
 def get_order(A):
@@ -89,7 +93,7 @@ def compute_Si(varphi, components_in_order, x_i):
         
 def compute_min_repr(varphi, variables, ideal_generators):
     if len(varphi.variables()) == 0:
-        print(f"classifier is constant {varphi} on the zero set of the ideal")
+        log.info(f"classifier is constant {varphi} on the zero set of the ideal")
 
         return [varphi]
 
@@ -110,7 +114,7 @@ def compute_min_repr(varphi, variables, ideal_generators):
     varphi = reduce(varphi, R, ideal_generators)
 
     if len(varphi.variables()) == 0:
-        print("classifier is constant zero on the zero set of the ideal")
+        log.info("classifier is constant zero on the zero set of the ideal")
 
         return [varphi]
     
@@ -136,7 +140,7 @@ def compute_min_repr(varphi, variables, ideal_generators):
         A = pick_a_set_of_P(P, A, variables)
 
         if A is None:
-            print("number_of_reductions = "+str(number_of_reductions))
+            log.info("number_of_reductions = "+str(number_of_reductions))
             return S
 
 

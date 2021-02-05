@@ -1,5 +1,8 @@
 #!/bin/bash
 
-for filename in benchmark_path_graph/*.json; do
-    python3 groebner.py --timeout 120 --bench "$filename"
+while true; do
+    python3 groebner.py --timeout 120 --bench-csv benchmark_path_graph.csv
+    if [ $? -eq 0 ]; then
+        break
+    fi
 done

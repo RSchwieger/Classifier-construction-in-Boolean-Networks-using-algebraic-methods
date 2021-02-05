@@ -20,7 +20,9 @@ def parse_bnet_file(fname: str) -> dict:
 
 def parse_bnet_str(fstr: str) -> dict:
 
-    lines = fstr.split("\n")
+    newline = "$" if "$" in fstr else "\n"
+    lines = fstr.split(newline)
+
     lines = [x.strip() for x in lines]
     lines = [x for x in lines if x]
     lines = [x for x in lines if not x.startswith("#")]

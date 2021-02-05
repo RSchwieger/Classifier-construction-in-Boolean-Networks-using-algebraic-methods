@@ -6,8 +6,6 @@ import argparse
 import signal
 import time
 import os
-import json
-from collections import defaultdict
 import pandas as pd
 
 from sage.all import TermOrder
@@ -24,7 +22,8 @@ log = logging.getLogger()
 
 
 def timeout(signum, frame):
-    raise Exception("time's up")
+    print("time's up")
+    sys.exit()
 
 
 if __name__ == "__main__":
@@ -38,31 +37,45 @@ if __name__ == "__main__":
     parser.add_argument("--phenotype", type=str, nargs=1, help="boolean expression that describes the phenotype")
     parser.add_argument("--tex-file", type=str, nargs=1, default=[], help="file name for output tex table")
     parser.add_argument("--timeout", type=int, nargs=1, help="time out in seconds")
-    parser.add_argument("--bench", type=str, nargs=1, help="bench mark json file")
+    parser.add_argument("--bench-csv", type=str, nargs=1, help="bench mark csv file")
     args = parser.parse_args()
 
     if args.timeout:
         signal.signal(signal.SIGALRM, timeout)
         signal.alarm(args.timeout[0])
 
-    if args.bench:
-        data = defaultdict(list)
-        data["file_name"].append(args.bench[0])
+    if args.bench_csv:
+        fname = args.bench_csv[0]
 
-        with open(args.bench[0], "r") as fp:
-            bench = json.load(fp)
+        if not os.path.isfile(fname):
+            print(f"benchmark file does not exist: {fname=}")
+            sys.exit()
 
-        bnet = bench.pop("bnet")
-        phenotypes = bench.pop("phenotype")
+        df = pd.read_csv(fname)
+
+        benchmark_keys = ["t_polynomials", "t_ideals", "t_varphi", "t_solutions", "n_solutions"]
+        if "done" not in df.columns:
+            for k in benchmark_keys:
+                df[k] = None
+
+            df["done"] = False
+
+        indices = df.index[df["done"] == False].tolist()
+
+        if not indices:
+            print("we're done")
+            sys.exit()
+
+        i = indices[0]
+        print(f"working on {fname}:{i}")
+
+        bnet = df.at[i, "bnet"]
+        phenotypes = df.at[i, "phenotype"]
 
         start = time.time()
         polys = parse_bnet_str(fstr=bnet)
         end = time.time()
-        log.info(f"computation of polynomials: {end - start:.2}")
-        data["t_polynomials"].append(end - start)
-
-        for k, v in bench.items():
-            data[k].append(v)
+        df.at[i, "t_polynomials"] = round(end - start, 2)
 
         R = BooleanPolynomialRing(names=sorted(polys), order=TermOrder("lex"))
         R.inject_variables()
@@ -76,27 +89,24 @@ if __name__ == "__main__":
         ideal_generator_expr = ', '.join(f'f__{name} + {name}' for name in polys)
         exec(f"ideal_generators = [{ideal_generator_expr}]")
         end = time.time()
-        data["t_ideals"].append(end - start)
+        df.at[i, "t_ideals"] = round(end - start, 2)
 
         start = time.time()
         varphi = None
         formula = phenotypes.replace("!", "~")
         exec(f"varphi = {boolean_formula_to_boolean_polynomial(formula=formula)}")
         end = time.time()
-        data["t_varphi"].append(end - start)
+        df.at[i, "t_varphi"] = round(end - start, 2)
 
         start = time.time()
         solutions = compute_min_repr(varphi, variables, ideal_generators)
         end = time.time()
-        data["t_solutions"].append(end - start)
+        df.at[i, "t_solutions"] = round(end - start, 2)
+        df.at[i, "n_solutions"] = len(solutions)
+        df.at[i, "done"] = True
 
-        df = pd.DataFrame(data=data)
-        fname = "benchmark.csv"
-
-        if os.path.isfile(fname):
-            df.to_csv(fname, mode="a", index=False, header=False)
-        else:
-            df.to_csv(fname, index=False)
+        df.to_csv(fname, index=False)
+        sys.exit(23)  # 23 = benchmark file not done yet
 
     if args.phenotype:
         log.info("constructing classifiers for phenotype")
