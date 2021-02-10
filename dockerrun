@@ -1,8 +1,15 @@
 #!/bin/bash
 
-while true; do
-    python3 groebner.py --timeout 120 --bench-csv benchmark_path_graph.csv
-    if [ $? -eq 0 ]; then
-        break
-    fi
-done
+
+# RC=23
+# while [ $RC == 23 ]; do
+#     python3 groebner.py --timeout 120 --bench-csv benchmark_junk.csv
+#     RC=$?
+# done
+
+python3 groebner.py --timeout 120 --phenotype 'v1 | !v2' --bnet awsome.bnet --assert-steady-states 100 110 000
+
+#python3 example1.py
+
+# f3 = x2*x3+x6
+#    f4 = x20+x7*x11

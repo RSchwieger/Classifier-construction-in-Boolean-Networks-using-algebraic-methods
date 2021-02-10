@@ -49,6 +49,8 @@ def formula_tree_to_polynomial_tree(tree: list) -> list:
     operator = tree[0]
 
     if operator == "|":
+        assert len(tree) == 3
+
         tree[0] = "+"
         a = formula_tree_to_polynomial_tree(tree[1])
         b = formula_tree_to_polynomial_tree(tree[2])
@@ -57,11 +59,15 @@ def formula_tree_to_polynomial_tree(tree: list) -> list:
         tree.append(["*", a, b])
 
     elif operator == "&":
+        assert len(tree) == 3
+
         tree[0] = "*"
         tree[1] = formula_tree_to_polynomial_tree(tree[1])
         tree[2] = formula_tree_to_polynomial_tree(tree[2])
 
     elif operator == "~":
+        assert len(tree) == 2
+
         tree[0] = "+"
         a = formula_tree_to_polynomial_tree(tree[1])
         tree[1] = 1
@@ -81,16 +87,14 @@ def polynomial_tree_to_str(tree: list) -> str:
     operator = tree[0]
 
     if operator == "+":
-        a = polynomial_tree_to_str(tree[1])
-        b = polynomial_tree_to_str(tree[2])
 
-        return f"{a} + {b}"
+        branches = [polynomial_tree_to_str(x) for x in tree[1:]]
+        return " + ".join(branches)
 
     elif operator == "*":
-        a = polynomial_tree_to_str(tree[1])
-        b = polynomial_tree_to_str(tree[2])
 
-        return f"({a}) * ({b})"
+        branches = [f"({polynomial_tree_to_str(x)})" if type(x) == list else f"{polynomial_tree_to_str(x)}" for x in tree[1:]]
+        return " * ".join(branches)
 
     else:
         raise ValueError(f"unknown operator: {operator}")
@@ -103,6 +107,7 @@ def boolean_formula_to_boolean_polynomial(formula: str) -> str:
 
     f = propcalc.formula(formula)
     tree = f.full_tree()
+    log.debug(f"tree = {tree}")
 
     if len(tree) == 1:
         return tree[0]

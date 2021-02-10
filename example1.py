@@ -48,7 +48,7 @@ if __name__ == "__main__":
     classifier = x1*x3*x7+x11+x25*x24*x23+x30
     
     print("Start computing...")
-    solutions = compute_min_repr(classifier, variables, ideal_generators)
+    solutions = compute_min_repr(classifier, variables, ideal_generators).solutions
     print("There are "+str(len(solutions))+" solutions")
     print("The solutions are:")
 

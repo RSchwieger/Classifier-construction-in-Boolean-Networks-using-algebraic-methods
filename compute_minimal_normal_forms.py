@@ -2,10 +2,16 @@
 
 import sys
 import logging
+from dataclasses import dataclass
+from typing import List
 
 from sage.all import TermOrder
 from sage.all import BooleanPolynomialRing
 from sage.all import Ideal
+from sage.rings.polynomial.pbori import BooleSet
+from sage.rings.polynomial.pbori import BooleanMonomial
+from sage.rings.polynomial.pbori import BooleanPolynomial
+
 
 from candidate_sets import exclude_backward, exclude_forwardeq, exclude_forward, initialize_candidate_sets, pick_a_set_of_P
 
@@ -90,12 +96,40 @@ def compute_Si(varphi, components_in_order, x_i):
 
     return S_i
 
-        
-def compute_min_repr(varphi, variables, ideal_generators):
-    if len(varphi.variables()) == 0:
-        log.info(f"classifier is constant {varphi} on the zero set of the ideal")
 
-        return [varphi]
+@dataclass()
+class MinRepresentations:
+    solutions: BooleSet
+    is_constant: bool
+    n_reductions: int
+    variables: List[BooleanMonomial]
+    ideal_generators: List[BooleanPolynomial]
+    varphi: BooleanPolynomial
+
+    def to_list(self) -> List[List[str]]:
+        return [[str(x) for x in sol.set()] for sol in self.solutions]
+
+    def to_polynomials(self) -> List[str]:
+        polys = []
+        block_in_order = {str(a): 0 for a in self.variables}
+
+        for sol in self.solutions:
+            for a in sol.variables():
+                block_in_order[str(a)] = 1
+
+            r, components_in_order = get_order(block_in_order)
+            varphi = reduce(self.varphi, r, self.ideal_generators)
+
+            polys.append(str(varphi))
+
+        return polys
+
+
+def compute_min_repr(varphi, variables, ideal_generators) -> MinRepresentations:
+    if len(varphi.variables()) == 0:
+        log.info(f"classifier is constant {varphi} on the zero set of the ideal: 1")
+
+        return MinRepresentations(solutions=[varphi], is_constant=True, n_reductions=0, variables=variables, ideal_generators=ideal_generators, varphi=varphi)
 
     P = initialize_candidate_sets(variables)
     S = initialize_candidate_sets(variables)
@@ -114,9 +148,9 @@ def compute_min_repr(varphi, variables, ideal_generators):
     varphi = reduce(varphi, R, ideal_generators)
 
     if len(varphi.variables()) == 0:
-        log.info("classifier is constant zero on the zero set of the ideal")
+        log.info("classifier is constant zero on the zero set of the ideal: 2")
 
-        return [varphi]
+        return MinRepresentations(solutions=[varphi], is_constant=True, n_reductions=1, variables=variables, ideal_generators=ideal_generators, varphi=varphi)
     
     while True:
 
@@ -141,7 +175,7 @@ def compute_min_repr(varphi, variables, ideal_generators):
 
         if A is None:
             log.info("number_of_reductions = "+str(number_of_reductions))
-            return S
+            return MinRepresentations(solutions=S, is_constant=False, n_reductions=number_of_reductions, variables=variables, ideal_generators=ideal_generators, varphi=varphi)
 
 
 def exclude_backward_sets(varphi, components_in_order, p):
