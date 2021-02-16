@@ -4,6 +4,7 @@ import sys
 import logging
 from dataclasses import dataclass
 from typing import List
+from statistics import mean
 
 from sage.all import TermOrder
 from sage.all import BooleanPolynomialRing
@@ -106,10 +107,13 @@ class MinRepresentations:
     ideal_generators: List[BooleanPolynomial]
     varphi: BooleanPolynomial
 
+    def average_size(self) -> float:
+        return mean(len(x) for x in self.to_list())
+
     def to_list(self) -> List[List[str]]:
         return [[str(x) for x in sol.set()] for sol in self.solutions]
 
-    def to_polynomials(self) -> List[str]:
+    def to_polynomials(self) -> List[BooleanPolynomial]:
         polys = []
         block_in_order = {str(a): 0 for a in self.variables}
 
@@ -118,9 +122,8 @@ class MinRepresentations:
                 block_in_order[str(a)] = 1
 
             r, components_in_order = get_order(block_in_order)
-            varphi = reduce(self.varphi, r, self.ideal_generators)
-
-            polys.append(str(varphi))
+            p = reduce(self.varphi, r, self.ideal_generators)
+            polys.append(p)
 
         return polys
 
@@ -156,9 +159,7 @@ def compute_min_repr(varphi, variables, ideal_generators) -> MinRepresentations:
 
         R, components_in_order = get_order(A)
         components_in_order = [R.variable(i) for i in range(len(components_in_order))]
-        #print("Reduce to ")
         varphi = reduce(varphi, R, ideal_generators)
-        #print(varphi)
         number_of_reductions += 1
         
         V = varphi.variables()
@@ -170,11 +171,10 @@ def compute_min_repr(varphi, variables, ideal_generators) -> MinRepresentations:
         S = exclude_forward(S, V, variables)
         S = exclude_backward_sets(varphi, components_in_order, S)
 
-        #print("P has "+str(len(P))+" elements left.")
         A = pick_a_set_of_P(P, A, variables)
 
         if A is None:
-            log.info("number_of_reductions = "+str(number_of_reductions))
+            log.debug("number_of_reductions = "+str(number_of_reductions))
             return MinRepresentations(solutions=S, is_constant=False, n_reductions=number_of_reductions, variables=variables, ideal_generators=ideal_generators, varphi=varphi)
 
 

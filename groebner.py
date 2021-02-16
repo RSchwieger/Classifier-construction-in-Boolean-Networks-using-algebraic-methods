@@ -24,8 +24,7 @@ log = logging.getLogger()
 
 
 def timeout(signum, frame):
-    print("time's up")
-    sys.exit()
+    raise TimeoutError
 
 
 if __name__ == "__main__":
@@ -52,30 +51,31 @@ if __name__ == "__main__":
         fname = args.bench_csv[0]
 
         if not os.path.isfile(fname):
-            print(f"benchmark file does not exist: {fname=}")
+            log.info(f"benchmark file does not exist: {fname=}")
             sys.exit()
 
         df = pd.read_csv(fname)
 
-        benchmark_keys = ["t_polynomials", "t_ideals", "t_varphi", "t_solutions", "n_solutions"]
-        if "done" not in df.columns or RESET:
+        benchmark_keys = ["t_polynomials", "t_ideals", "t_varphi", "t_solutions", "n_solutions", "avg_size"]
+        if "is_done" not in df.columns or RESET:
             for k in benchmark_keys:
                 df[k] = None
 
-            df["done"] = False
-            df["exception"] = False
-            df["constant_classifier"] = False
+            df["is_done"] = False
+            df["has_crashed"] = False
+            df["reached_timeout"] = False
+            df["is_constant"] = False
 
-        indices = df.index[df["done"] == False].tolist()
+        indices = df.index[df["is_done"] == False].tolist()
 
         if not indices:
-            print("we're done")
+            log.info("we're done")
             sys.exit()
 
         i = indices[0]
-        print(f"working on {fname}:{i}")
+        log.info(f"working on {fname}:{i}")
         cols = [x for x in df.columns if x not in ["bnet", "phenotype"] + benchmark_keys]
-        print(df.loc[i:i, cols])
+        log.info(df.loc[i:i, cols])
 
         bnet = df.at[i, "bnet"]
         phenotype = df.at[i, "phenotype"]
@@ -93,50 +93,60 @@ if __name__ == "__main__":
             exec(f"f__{name} = {poly}")
 
         start = time.time()
-        ideal_generators = None
         ideal_generator_expr = ', '.join(f'f__{name} + {name}' for name in polys)
-        exec(f"ideal_generators = [{ideal_generator_expr}]")
+        ideal_generators = eval(f"[{ideal_generator_expr}]")
         end = time.time()
         df.at[i, "t_ideals"] = round(end - start, 2)
 
         start = time.time()
-        varphi = None
+
         formula = phenotype.replace("!", "~")
-        exec(f"varphi = {boolean_formula_to_boolean_polynomial(formula=formula)}")
+        varphi = eval(f"{boolean_formula_to_boolean_polynomial(formula=formula)}")
         end = time.time()
         df.at[i, "t_varphi"] = round(end - start, 2)
 
         start = time.time()
+
         try:
             min_repr = compute_min_repr(varphi, variables, ideal_generators)
+
         except SystemError:
-            df.at[i, "done"] = True
-            df.at[i, "exception"] = True
+            df.at[i, "is_done"] = True
+            df.at[i, "has_crashed"] = True
             df.to_csv(fname, index=False)
             print("system error")
             sys.exit(23)
-        end = time.time()
 
-        print(min_repr.to_list())
+        except TimeoutError:
+            df.at[i, "is_done"] = True
+            df.at[i, "reached_timeout"] = True
+            df.to_csv(fname, index=False)
+            print("time out")
+            sys.exit(23)
+
+        except RuntimeError:
+            df.at[i, "is_done"] = True
+            df.at[i, "has_crashed"] = True
+            df.to_csv(fname, index=False)
+            print("runtime error")
+            sys.exit(23)
+
+        end = time.time()
 
         steady_states = df.at[i, "steady_states"].split(",")
         phenotype_support = df.at[i, "phenotype"].split(",")
 
-        for names in min_repr.to_list():
-            # validate_solution(classifier_support=names, steady_states=steady_states, phenotype=phenotype)
-            print(names, end="")
-            break
-
-        print()
-
-        sys.exit()
+        """
+        for poly in min_repr.to_polynomials():
+            validate_solution(classifier=str(poly), steady_states=steady_states, phenotype=phenotype)
+        """
 
         df.at[i, "t_solutions"] = round(end - start, 2)
         df.at[i, "n_solutions"] = len(min_repr.solutions)
         df.at[i, "n_reductions"] = min_repr.n_reductions
-        df.at[i, "constant_classifier"] = min_repr.is_constant
-        df.at[i, "done"] = True
-        df.at[i, "exception"] = False
+        df.at[i, "is_constant"] = min_repr.is_constant
+        df.at[i, "avg_size"] = min_repr.average_size()
+        df.at[i, "is_done"] = True
 
         df.to_csv(fname, index=False)
         sys.exit(23)
@@ -168,47 +178,43 @@ if __name__ == "__main__":
             exec(f"f__{name} = {poly}")
             exec(f"f__.append(f__{name})")
 
-        if args.assert_steady_states:
-            print("testing steady states")
-            for state in args.assert_steady_states:
-                print(f" {state}")
-                for i, value in enumerate(state):
-                    state = list(map(int, state))
-                    assert f__[i](*state) == int(value)
-
         ideal_generators = None
         ideal_generator_expr = ', '.join(f'f__{name} + {name}' for name in polys)
         log.debug(f"ideal_generator_expr = [{ideal_generator_expr}]")
 
         exec(f"ideal_generators = [{ideal_generator_expr}]")
-        log.info(f"ideal_generators = {ideal_generators}")
+        log.debug(f"ideal_generators = {ideal_generators}")
 
         varphi = None
-        formula = args.phenotype[0].replace("!", "~")
-
         try:
-            poly = boolean_formula_to_boolean_polynomial(formula=formula)
-            exec(f"varphi = {poly}")
-            log.debug(f"varphi = {poly}")
+            varphi_str = boolean_formula_to_boolean_polynomial(formula=args.phenotype[0].replace("!", "~"))
+            exec(f"varphi = {varphi_str}")
+            log.debug(f"varphi = {varphi_str}")
 
         except NameError as e:
             log.error(f"classifier references unknown variable: {e}")
             exit()
 
-        log.info(f"varphi = {str(varphi)[:10]}..")
-
         min_repr = compute_min_repr(varphi, variables, ideal_generators)
 
-        log.info("The solutions are:")
-
-        for poly in min_repr.to_polynomials():
-            log.info(f"{poly}")
-
-        log.info(f"There are {len(min_repr.solutions)} solutions")
+        log.info("the solutions are:")
 
         if args.tex_file:
             write_tex_table(min_repr.solutions, variables, ideal_generators, varphi, args.output[0])
             log.info(f"created {args.output[0]}")
+
+        if args.assert_steady_states:
+
+            log.debug("testing steady states")
+            for state in args.assert_steady_states:
+                log.debug(f" {state}")
+                for i, value in enumerate(state):
+                    state = list(map(int, state))
+                    assert f__[i](*state) == int(value)
+
+
+
+
 
 
 

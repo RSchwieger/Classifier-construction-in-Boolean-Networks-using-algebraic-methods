@@ -1,13 +1,12 @@
 #!/bin/bash
 
+RC=23
+while [ $RC == 23 ]; do
+    python3 groebner.py --timeout 500 --bench-csv benchmark_random_truth_table_network103.csv
+    RC=$?
+done
 
-# RC=23
-# while [ $RC == 23 ]; do
-#     python3 groebner.py --timeout 120 --bench-csv benchmark_junk.csv
-#     RC=$?
-# done
-
-python3 groebner.py --timeout 120 --phenotype 'v1 | !v2' --bnet awsome.bnet --assert-steady-states 100 110 000
+# python3 groebner.py --timeout 120 --bench-csv benchmark_random_regular_network.csv
 
 #python3 example1.py
 
