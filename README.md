@@ -38,4 +38,11 @@ run image:
 docker run -v $(pwd):/media -it rschwieger
 ```
  
+# about the algorithm
+
+The code implements the algorithm proposed in 
+
+> Schwieger, Robert, Matías R. Bender, Heike Siebert, and Christian Haase. "Classifier construction in Boolean networks using algebraic methods." In _International Conference on Computational Methods in Systems Biology_, pp. 210-233. Springer, Cham, 2020.
+> https://doi.org/10.1007/978-3-030-60327-4_12
+
 
